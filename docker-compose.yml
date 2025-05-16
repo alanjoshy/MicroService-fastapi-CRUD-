@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - user-service
+      - admin-service
+      - auth-service
+      - product-service
+    environment:
+      - USER_SERVICE_URL=http://user-service:8001
+      - ADMIN_SERVICE_URL=http://admin-service:8002
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - PRODUCT_SERVICE_URL=http://product-service:8004
+    networks:
+      - app-network
+    restart: always
+
+  # User Service
+  user-service:
+    build: ./user-service
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db-user
+      - auth-service
+    environment:
+      - DATABASE_HOST=db-user
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=user_db
+      - AUTH_SERVICE_URL=http://auth-service:8003
+    networks:
+      - app-network
+    restart: always
+
+  # Admin Service
+  admin-service:
+    build: ./admin-service
+    ports:
+      - "8002:8002"
+    depends_on:
+      - db-admin
+      - auth-service
+      - user-service
+    environment:
+      - DATABASE_HOST=db-admin
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=admin_db
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - USER_SERVICE_URL=http://user-service:8001
+    networks:
+      - app-network
+    restart: always
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8003:8003"
+    environment:
+      - SECRET_KEY=your-secure-secret-key-for-jwt-replace-in-production
+      - USER_SERVICE_URL=http://user-service:8001
+    networks:
+      - app-network
+    restart: always
+
+  # Product Service
+  product-service:
+    build: ./product-service
+    ports:
+      - "8004:8004"
+    depends_on:
+      - db-product
+      - auth-service
+    environment:
+      - DATABASE_HOST=db-product
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=product_db
+      - AUTH_SERVICE_URL=http://auth-service:8003
+    networks:
+      - app-network
+    restart: always
+
+  # User Database
+  db-user:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=user_db
+    volumes:
+      - user_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+  # Admin Database
+  db-admin:
+    image: postgres:14
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=admin_db
+    volumes:
+      - admin_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+  # Product Database
+  db-product:
+    image: postgres:14
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=product_db
+    volumes:
+      - product_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  user_data:
+  admin_data:
+  product_data:
