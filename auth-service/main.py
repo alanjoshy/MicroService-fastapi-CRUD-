@@ -4,7 +4,7 @@ from app.api.api import router
 
 app = FastAPI(title="Authentication Service")
 
-# Include API router
+# Include API router. 
 app.include_router(router)
 
 if __name__ == "__main__":
